@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a202c 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 32px;
+            border-radius: 12px;
+            border-bottom: 2px solid #4f46e5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #f1f5f9;
+        }
+
+        header .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        header .badge {
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+            margin-right: 8px;
+        }
+
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #4f46e5;
+            box-shadow: 0 8px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-icon {
+            font-size: 20px;
+        }
+
+        textarea, select, input {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        textarea {
+            min-height: 320px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .output-section {
+            min-height: 200px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #334155;
+            border-top-color: #4f46e5;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #7f1d1d;
+            border: 1px solid #dc2626;
+            color: #fecaca;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .success {
+            background: #1a3a1a;
+            border: 1px solid #22c55e;
+            color: #86efac;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .review-item {
+            background: #0f172a;
+            border-left: 3px solid #4f46e5;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .review-severity {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .severity-critical {
+            background: #dc2626;
+            color: white;
+        }
+
+        .severity-high {
+            background: #ea580c;
+            color: white;
+        }
+
+        .severity-medium {
+            background: #eab308;
+            color: #1a1a1a;
+        }
+
+        .severity-low {
+            background: #06b6d4;
+            color: white;
+        }
+
+        .review-location {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-family: 'Monaco', monospace;
+        }
+
+        .review-description {
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .review-fix {
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #a1f3a8;
+            border-left: 2px solid #22c55e;
+            font-family: 'Monaco', monospace;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 12px;
+            border-top: 1px solid #334155;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: #4f46e5;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #6366f1;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Code Review Bot</h1>
+            <div class="subtitle">All Software Teams</div>
+            <span class="badge">Code Review Analysis</span>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="card">
+                <h2><span class="card-icon">💾</span> Input</h2>
+
+                <div class="form-group">
+                    <label for="language">Programming Language</label>
+                    <select id="language">
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="Python">Python</option>
+                        <option value="Java">Java</option>
+                        <option value="C#">C#</option>
+                        <option value="Go">Go</option>
+                        <option value="Rust">Rust</option>
+                        <option value="PHP">PHP</option>
+                        <option value="TypeScript">TypeScript</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="codeInput">Code / Diff to Review</label>
+                    <textarea id="codeInput" placeholder="Paste your code or diff here...">function fetchUserData(userId) {
+  const apiKey = "sk-12345678901234567890";
+  fetch('https://api.example.com/users/' + userId, {
+    headers: {'Authorization': 'Bearer ' + apiKey}
+  })
+  .then(res => res.json())
+  .then(data => {
+    for (let i = 0; i < 1000000; i++) {
+      document.body.innerHTML += '<p>' + data.name + '</p>';
+    }
+  });
+}
+
+fetchUserData(1);</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="context">Additional Context</label>
+                    <input type="text" id="context" value="Production API integration, no framework" placeholder="e.g., API layer, payment processing, authentication module">
+                </div>
+
+                <div class="button-group">
+                    <button onclick="reviewCode()" id="reviewBtn">Review Code</button>
+                </div>
+                <div class="hint">✨ Click to analyze your code for security, performance, and quality issues</div>
+            </div>
+
+            <div class="card output-section">
+                <h2><span class="card-icon">📊</span> Analysis Results</h2>
+                <div id="output">
+                    <div style="color: #64748b; padding: 40px 20px; text-align: center;">
+                        <div style="font-size: 14px; margin-bottom: 12px;">👈 Paste your code and click Review to get started</div>
+                        <div style="font-size: 12px; color: #475569;">Your security and code quality analysis will appear here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Powered by Bharat AI · For more information connect <a href="mailto:atulmca@yahoo.com">atulmca@yahoo.com</a>
+    </footer>
+
+    <script>
+        async function reviewCode() {
+            const codeInput = document.getElementById('codeInput').value.trim();
+            const language = document.getElementById('language').value;
+            const context = document.getElementById('context').value.trim();
+            const output = document.getElementById('output');
+            const reviewBtn = document.getElementById('reviewBtn');
+
+            if (!codeInput) {
+                output.innerHTML = '<div class="error"><div class="error-title">⚠️ Input Required</div>Please paste some code to review.</div>';
+                return;
+            }
+
+            output.innerHTML = '<div class="loading"><div class="spinner"></div><span>Analyzing your code...</span></div>';
+            reviewBtn.disabled = true;
+
+            try {
+                const prompt = `You are an expert code reviewer. Analyze the following ${language} code for:
+1. Security vulnerabilities (OWASP Top 10, injection risks, hardcoded secrets)
+2. Performance issues (N+1 queries, memory leaks, blocking calls)
+3. Code quality issues (naming, complexity, DRY violations)
+4. Test coverage gaps
+5. Compliance with clean code principles
+
+For EACH issue found, provide in this exact format:
+Severity (Critical/High/Medium/Low) | Location | Description | Suggested Fix
+
+Context: ${context || 'General code review'}
+
+CODE TO REVIEW:
+\`\`\`${language}
+${codeInput}
+\`\`\`
+
+Provide a comprehensive review with all issues found. If no issues found, say "No critical issues detected."`;
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-haiku-4-5-20251001',
+                        max_tokens: 2048,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const reviewText = data.content[0].text;
+
+                const issues = parseReviewResults(reviewText);
+                const htmlOutput = formatReviewResults(issues, reviewText);
+                output.innerHTML = htmlOutput;
+            } catch (error) {
+                output.innerHTML = `<div class="error"><div class="error-title">❌ Analysis Error</div>${error.message || 'Failed to analyze code. Please try again.'}</div>`;
+            } finally {
+                reviewBtn.disabled = false;
+            }
+        }
+
+        function parseReviewResults(text) {
+            const lines = text.split('\n');
+            const issues = [];
+            let currentIssue = {};
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                if (line.match(/^(Critical|High|Medium|Low)\s*\|/)) {
+                    if (Object.keys(currentIssue).length > 0) {
+                        issues.push(currentIssue);
+                    }
+                    const parts = line.split('|').map(p => p.trim());
+                    currentIssue = {
+                        severity: parts[0] || 'Medium',
+                        location: parts[1] || 'Unknown',
+                        description: parts[2] || '',
+                        fix: parts[3] || ''
+                    };
+                }
+            }
+
+            if (Object.keys(currentIssue).length > 0) {
+                issues.push(currentIssue);
+            }
+
+            return issues;
+        }
+
+        function formatReviewResults(issues, fullText) {
+            const severityCounts = {
+                Critical: 0,
+                High: 0,
+                Medium: 0,
+                Low: 0
+            };
+
+            issues.forEach(issue => {
+                const sev = issue.severity;
+                if (severityCounts.hasOwnProperty(sev)) {
+                    severityCounts[sev]++;
+                }
+            });
+
+            let html = `
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number">${severityCounts.Critical}</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">${severityCounts.High}</div>
+                        <div class="stat-label">High</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">${severityCounts.Medium}</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">${severityCounts.Low}</div>
+                        <div class="stat-label">Low</div>
+                    </div>
+                </div>
+            `;
+
+            if (issues.length === 0 || fullText.toLowerCase().includes('no critical issues')) {
+                html += '<div class="success"><div style="font-weight: 600; margin-bottom: 8px;">✅ Code Review Complete</div>' + formatPlainText(fullText) + '</div>';
+            } else {
+                issues.forEach(issue => {
+                    const severityClass = `severity-${issue.severity.toLowerCase()}`;
+                    html += `
+                        <div class="review-item">
+                            <span class="review-severity ${severityClass}">${issue.severity}</span>
+                            <div class="review-location">📍 ${issue.location || 'General'}</div>
+                            <div class="review-description">${escapeHtml(issue.description)}</div>
+                            ${issue.fix ? `<div class="review-fix">💡 Fix: ${escapeHtml(issue.fix)}</div>` : ''}
+                        </div>
+                    `;
+                });
+
+                if (issues.length < 5) {
+                    html += '<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155;"><strong>Full Review:</strong><div style="margin-top: 12px; white-space: pre-wrap; font-size: 13px; color: #cbd5e1; line-height: 1.6;">' + formatPlainText(fullText) + '</div></div>';
+                }
+            }
+
+            return html;
+        }
+
+        function formatPlainText(text) {
+            let formatted = escapeHtml(text);
+            formatted = formatted.replace(/## (.+)/g, '<strong style="color: #4f46e5;">$1</strong>');
+            formatted = formatted.replace(/^[-*] /gm, '• ');
+            formatted = formatted.replace(/^\d+\. /gm, match => match);
+            return '<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 13px; line-height: 1.6;">' + formatted + '</pre>';
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        document.getElementById('codeInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+    </script>
+</body>
+</html>
